@@ -1,8 +1,7 @@
 /*******************************************
- Basic Sparki Code
- 
-This is the most basic code you can use to
-run Sparki. 
+Algorithm 2 Demo 2
+Jesse Martinez
+Ivan Brčić
 ********************************************/
 #include <Sparki.h> // include the sparki library
 

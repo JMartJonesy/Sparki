@@ -1,5 +1,7 @@
 /*******************************************
- Demo 2 Algorithm 1
+Algorithm 1 Demo 2
+Jesse Martinez
+Ivan Brčić
 ********************************************/
 #include <Sparki.h> // include the sparki library
 
