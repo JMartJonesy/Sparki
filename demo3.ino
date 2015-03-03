@@ -8,11 +8,10 @@ Ivan Brčić
 int ping = 0;
 int positionIndex = 0;
 boolean obstacle = false;
-boolean passed = false;
 double distance = 0;
-double pingMax = 16;
+double pingMax = 14;
 double locs[5][2] = {{0,0}, {60,60}, {-20,40}, {-30,-50}, {0,0}};
-double sparkiBot[5] = {0,0,0,0,0}; //x, y, degree, steps, goal Degree
+double sparkiBot[4] = {0,0,0,0}; //x, y, degree, steps
 
 void setup() // code inside these brackets runs first, and only once
 {
@@ -21,22 +20,20 @@ void setup() // code inside these brackets runs first, and only once
 
 void loop() // code inside these brackets runs over and over forever
 {
-  if (positionIndex < sizeof(locs)/sizeof(locs[0])) {
+  if(positionIndex < sizeof(locs)/sizeof(locs[0])) {
     obstacle = false;
     double ydiff = locs[positionIndex][1] - sparkiBot[1];
     double xdiff = locs[positionIndex][0] - sparkiBot[0];
     double gamma = atan2(ydiff, xdiff) * 180 / PI;
     double turnDegrees = gamma - sparkiBot[2];
     
-    sparkiBot[4] = gamma;
-    
-    sparki.print("X");
-    sparki.print(sparkiBot[0]);
-    sparki.print(",Y");
-    sparki.println(sparkiBot[1]);
-    sparki.print("GAMMA");
-    sparki.println(gamma);
-    sparki.updateLCD();
+    //sparki.print("X");
+    //sparki.print(sparkiBot[0]);
+    //sparki.print(",Y");
+    //sparki.println(sparkiBot[1]);
+    //sparki.print("GAMMA");
+    //sparki.println(gamma);
+    //sparki.updateLCD();
     
     if(turnDegrees > 180)
       turnDegrees -= 360;
@@ -51,7 +48,6 @@ void loop() // code inside these brackets runs over and over forever
     double turned = 0;
     while(turned < abs(turnDegrees)) 
       turned = abs(sparki.totalTravel(0) - sparkiBot[3]) / STEPS_PER_DEGREE;
-      
     sparki.moveStop();
     sparkiBot[2] = gamma;
     sparkiBot[3] = sparki.totalTravel(0);
@@ -74,28 +70,26 @@ void loop() // code inside these brackets runs over and over forever
       positionIndex++;
     }
     
-    sparki.println("Bottom");
+    //sparki.println("Bottom");
   }
 }
 
 boolean atGoal()
 {
-  sparki.print("X,Y:");
-  sparki.print(sparkiBot[0]);
-  sparki.print(",");
-  sparki.println(sparkiBot[1]);
-  sparki.print("GX,GY:");
-  sparki.print(locs[positionIndex][0]);
-  sparki.print(",");
-  sparki.println(locs[positionIndex][1]);
-  sparki.updateLCD();
+  //sparki.print("X,Y:");
+  //sparki.print(sparkiBot[0]);
+  //sparki.print(",");
+  //sparki.println(sparkiBot[1]);
+  //sparki.print("GX,GY:");
+  //sparki.print(locs[positionIndex][0]);
+  //sparki.print(",");
+  //sparki.println(locs[positionIndex][1]);
+  //sparki.updateLCD();
   
   double xThreshold = abs(locs[positionIndex][0] - sparkiBot[0]);
   double yThreshold = abs(locs[positionIndex][1] - sparkiBot[1]);
-  if(xThreshold <= 2 && yThreshold <=2)
+  if(xThreshold <= 1 && yThreshold <=1)
     return true;
-  if(locs[positionIndex][0] - sparkiBot[0] > 2 && locs[positionIndex][0] - sparkiBot[0] > 2)
-    passed = true;
   return false;
 }
 
@@ -108,9 +102,13 @@ void wallFollow()
   {
     a = (-locs[positionIndex][1] - locs[positionIndex - 1][1]) / 
       (locs[positionIndex][0] - locs[positionIndex - 1][0]);
-    c = ((locs[positionIndex][1] - locs[positionIndex - 1][1]) / 
-      (locs[positionIndex][0] - locs[positionIndex - 1][0])) * locs[positionIndex - 1][0] - locs[positionIndex - 1][1];
+    c = (((locs[positionIndex][1] - locs[positionIndex - 1][1]) / 
+      (locs[positionIndex][0] - locs[positionIndex - 1][0])) * locs[positionIndex - 1][0]) - locs[positionIndex - 1][1];
   }
+  sparki.print("a:");
+  sparki.println(a);
+  sparki.print("c:");
+  sparki.println(c);
   sparki.println("Wall Follow");
   sparki.updateLCD();
   while(true)
@@ -128,12 +126,14 @@ void wallFollow()
     sparki.moveStop();
     ping = sparki.ping();
     if(ping > pingMax)
-      moveMeRight(ping);
+      turnMe(ping, false);
+    else if(ping < pingMax)
+      turnMe(ping, true);
     sparki.moveStop();
     sparkiBot[3] = sparki.totalTravel(0);
     sparki.print("Angle");
     sparki.println(sparkiBot[2]);
-    if(mLineDistance(a,b,c) <= .5)
+    if(mLineDistance(a,b,c) <= 3)
     {
       sparki.servo(SERVO_CENTER);
       sparki.print("HERE");
@@ -153,18 +153,24 @@ void moveMe()
   sparkiBot[3] = sparki.totalTravel(0);
 }
 
-void moveMeRight(int obstacleDistance)
+void turnMe(int obstacleDistance, boolean left)
 {
  double turned = 0;
  double degreesToTurn = (obstacleDistance - pingMax) / 20;
- sparki.moveRight();
+ if(left)
+   sparki.moveLeft();
+ else
+   sparki.moveRight();
  do
  {
    turned = abs(sparki.totalTravel(0) - sparkiBot[3]) / STEPS_PER_DEGREE;
  }
  while(turned < degreesToTurn);
  sparki.moveStop();
- sparkiBot[2] -= turned;
+ if(left)
+   sparkiBot[2] += turned;
+ else
+   sparkiBot[2] -= turned;
  sparkiBot[3] = sparki.totalTravel(0);
 }
 
