@@ -11,7 +11,7 @@ boolean obstacle = false;
 boolean passed = false;
 double distance = 0;
 double pingMax = 16;
-double locs[1][2] = {{100,100}};
+double locs[5][2] = {{0,0}, {60,60}, {-20,40}, {-30,-50}, {0,0}};
 double sparkiBot[5] = {0,0,0,0,0}; //x, y, degree, steps, goal Degree
 
 void setup() // code inside these brackets runs first, and only once
@@ -63,18 +63,16 @@ void loop() // code inside these brackets runs over and over forever
       ping = sparki.ping();
       if(ping <= pingMax)
         obstacle = true;
-      if(passed)
-      {
-        passed = false;
-        break;
-      }
     }
     
     sparki.moveStop();
     if(obstacle)
       wallFollow();
     else if(atGoal())
+    {
+      //delay(10000);
       positionIndex++;
+    }
     
     sparki.println("Bottom");
   }
@@ -103,6 +101,16 @@ boolean atGoal()
 
 void wallFollow()
 {
+  double a;
+  double b = 1;
+  double c;
+  if(positionIndex != 0)
+  {
+    a = (-locs[positionIndex][1] - locs[positionIndex - 1][1]) / 
+      (locs[positionIndex][0] - locs[positionIndex - 1][0]);
+    c = ((locs[positionIndex][1] - locs[positionIndex - 1][1]) / 
+      (locs[positionIndex][0] - locs[positionIndex - 1][0])) * locs[positionIndex - 1][0] - locs[positionIndex - 1][1];
+  }
   sparki.println("Wall Follow");
   sparki.updateLCD();
   while(true)
@@ -121,14 +129,13 @@ void wallFollow()
     ping = sparki.ping();
     if(ping > pingMax)
       moveMeRight(ping);
-    sparki.servo(SERVO_CENTER);
-    delay(400);
     sparki.moveStop();
     sparkiBot[3] = sparki.totalTravel(0);
     sparki.print("Angle");
     sparki.println(sparkiBot[2]);
-    if(abs(sparkiBot[2] - sparkiBot[4]) <= 15)
+    if(mLineDistance(a,b,c) <= .5)
     {
+      sparki.servo(SERVO_CENTER);
       sparki.print("HERE");
       sparki.println(sparkiBot[2]);
       sparki.updateLCD();
@@ -159,4 +166,9 @@ void moveMeRight(int obstacleDistance)
  sparki.moveStop();
  sparkiBot[2] -= turned;
  sparkiBot[3] = sparki.totalTravel(0);
+}
+
+double mLineDistance(double a, double b, double c)
+{
+  return abs((a * sparkiBot[0]) + (b * sparkiBot[1]) + c) / sqrt((a * a) + (b * b));
 }
