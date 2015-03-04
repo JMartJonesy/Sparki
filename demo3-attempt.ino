@@ -1,5 +1,5 @@
 /*******************************************
-Algorithm 2 Demo 2
+Demo 3 Attempt
 Jesse Martinez
 Ivan Brčić
 ********************************************/
@@ -137,6 +137,17 @@ void wallFollow()
     sparki.print("d:");
     sparki.println(d);
     sparki.updateLCD();
+    
+    
+    ////////////////////////////////////////
+    sparki.servo(SERVO_CENTER);
+    delay(400);
+    ping = sparki.ping();
+    if(ping < pingmax)
+      obstacle = true;
+ ////////////////////////////////////////////
+ 
+     
     if(d <= 6)
     //if(mLineDistance(a,b,c) <= 3)
     {
