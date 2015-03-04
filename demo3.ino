@@ -121,7 +121,7 @@ void wallFollow()
     }
     sparki.servo(SERVO_RIGHT);
     sparki.moveForward();
-    delay(500);
+    delay(1200);
     moveMe();
     sparki.moveStop();
     ping = sparki.ping();
@@ -156,7 +156,13 @@ void moveMe()
 void turnMe(int obstacleDistance, boolean left)
 {
  double turned = 0;
- double degreesToTurn = (obstacleDistance - pingMax) / 20;
+ double degreesToTurn;
+ if(obstacleDistance > 70)
+   degreesToTurn = 25;
+ if(obstacleDistance > 50)
+   degreesToTurn = 15;
+ else
+   degreesToTurn = 5;
  if(left)
    sparki.moveLeft();
  else
