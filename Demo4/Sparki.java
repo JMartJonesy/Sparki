@@ -164,9 +164,14 @@ public class Sparki {
 	this.steps = steps;
     }
 
+    public void setCurTheta(double angle)
+    {
+	curTheta = angle;
+    }
+
     public void setServoTheta(double angle)
     {
-	servoTheta += angle;
+	servoTheta = angle;
     }
 
     public void setX(double x)
@@ -253,10 +258,10 @@ public class Sparki {
             		int ping = sparki.ping();
             		System.out.println(ping);
 			
-			double maxAngle = sparki.getServoTheta() + 7;
-			double minAngle = sparki.getServoTheta() - 7;
-			for(int checks = 0; checks < 5; checks++)
+			for(int checks = 0; checks < 45; checks++)
 			{
+				double maxAngle = sparki.getServoTheta() + sparki.getCurTheta() + 7;
+				double minAngle = sparki.getServoTheta() + sparki.getCurTheta() - 7;
 				for(int x = 0; x < WIDTH; x++)
 				{
 					for(int y = 0; y < HEIGHT; y++)
@@ -300,17 +305,42 @@ public class Sparki {
 					}
 				}
 				mw.reColor();
-				System.out.println("X,Y: " + sparki.getX() + ", " + sparki.getY());
-            		}
-				
+            			
+				if(checks > 15 && checks <= 30)
+				{
+					sparki.servo(15);
+					sparki.setServoTheta(15);
+				}
+				else if(checks > 30)
+				{
+					sparki.servo(-15);
+					sparki.setServoTheta(-15);
+				}
+			}
+			
+			sparki.servo(0);
+			sparki.setServoTheta(0);
 			sparki.moveForward();
-			sparki.delay(500);
+			sparki.delay(1000);
 			sparki.moveStop();
-				
-			double distance = Math.abs(sparki.totalTravel()[0] - sparki.getSteps()) / (4000/(5*Math.PI));
-			sparki.setX(sparki.getX() + (Math.cos(sparki.getCurTheta() * (Math.PI/180)) * distance));
-			sparki.setY(sparki.getY() + (Math.sin(sparki.getCurTheta() * (Math.PI/180)) * distance));
+			
+			double distance = Math.abs(sparki.totalTravel()[0] - sparki.getSteps()) / (4000/(5.0*Math.PI));
+			
+			sparki.setX(sparki.getX() + (Math.cos(sparki.getCurTheta() * (Math.PI/180.0)) * distance));
+			sparki.setY(sparki.getY() + (Math.sin(sparki.getCurTheta() * (Math.PI/180.0)) * distance));
 			sparki.setSteps(sparki.totalTravel()[0]);
+		
+			if(ping < 25)
+			{
+				double turned = 0;
+				double degreesToTurn = 90;
+				sparki.moveRight();
+				while(turned < degreesToTurn)
+					turned = Math.abs(sparki.totalTravel()[0] - sparki.getSteps()) / ((8.51 / 5.00) * 4000 / 360.0);
+				sparki.moveStop();
+				sparki.setCurTheta(sparki.getCurTheta() - turned);
+				sparki.setSteps(sparki.totalTravel()[0]);
+			}
 		}
     	    }
 	}
