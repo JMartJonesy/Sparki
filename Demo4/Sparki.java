@@ -31,11 +31,13 @@ public class Sparki {
 	public double curX;
 	public double curY;
 	public double curTheta;
+	public double servoTheta;
 	
 	Sparki(String comPort) {
 		portName = comPort;
 		serialPort = new SerialPort(portName);
-		curTheta = 90;
+		curTheta = 45;
+		servoTheta = 0;
 		curX = HEIGHT/2;
 		curY = WIDTH/2;
 	}
@@ -165,6 +167,16 @@ public class Sparki {
     public double getY(){
     	return curY;
     }
+
+    public double getCurTheta()
+    {
+	return curTheta;
+    }
+
+    public double getServoTheta()
+    {
+	return servoTheta;
+    }
     
     /**
      * All responses from Sparki are *-terminated, to ensure complete
@@ -212,56 +224,90 @@ public class Sparki {
         if(connected) {
         	MapWindow mw = new MapWindow(WIDTH, HEIGHT, 0.01);
 
-            	while(true) {
+            	while(true) 
+		{
             		int ping = sparki.ping();
             		System.out.println(ping);
-			if(ping >= MAX_DISTANCE)
+			
+			double side = ping * Math.tan(7*Math.PI/180);
+			double p1x = sparki.getX();
+			double p0x = sparki.getX() - side;
+			double p2x = sparki.getX() + side;
+			double p1y = sparki.getY();
+			double p0y = sparki.getY() + ping;
+			double p2y = sparki.getY() + ping;
+
+			System.out.println("p0x: " + p0x + " p0y: " + p0y + " p1x: " + p1x + " p1y: " + p1y + " p2x: " + p2x + " p2y: " + p2y);
+			double area = (.5)*(-p1y*p2x + p0y*(-p1x + p2x) + p0x*(p1y - p2y) + p1x*p2y);
+			System.out.println(area);
+			
+			p0x -= p1x;
+			p2x -= p1x;
+			p0y -= p1y;
+			p2y -= p1y;
+
+			double curTheta = sparki.getCurTheta();
+			double servoTheta = sparki.getServoTheta();
+			double newp0x = p0x * Math.cos((curTheta + servoTheta) * Math.PI/180) - p0y * Math.sin((curTheta + servoTheta) * Math.PI/180);
+			double newp0y = p0y * Math.cos((curTheta + servoTheta) * Math.PI/180) - p0x * Math.sin((curTheta + servoTheta) * Math.PI/180);
+			
+			double newp2x = p2x * Math.cos((curTheta + servoTheta) * Math.PI/180) - p2y * Math.sin((curTheta + servoTheta) * Math.PI/180);
+			double newp2y = p2y * Math.cos((curTheta + servoTheta) * Math.PI/180) - p2x * Math.sin((curTheta + servoTheta) * Math.PI/180);
+			
+			p0x = newp0x;
+			p2x = newp2x;
+			p0y = newp0y;
+			p2y = newp2y;
+
+			p0x += p1x;
+			p2x += p1x;
+			p0y += p1y;
+			p2y += p1y;
+			
+			System.out.println("p0x: " + p0x + " p0y: " + p0y + " p1x: " + p1x + " p1y: " + p1y + " p2x: " + p2x + " p2y: " + p2y);
+			
+			for(int x = 0; x < WIDTH; x++)
 			{
-            			for(int x = 0; x < WIDTH; x++)
-            				for(int y = 0; y < HEIGHT; y++)
-            				{
-            					double ydiff = y - sparki.getY();
-            					double xdiff = x - sparki.getX();
-            					double theta = Math.atan2(ydiff, xdiff) * 180 / Math.PI;
-            					double distance = Math.sqrt(Math.pow(ydiff, 2) + Math.pow(xdiff, 2));
-						System.out.println("XCurr: " + sparki.getX() + " YCurr: " + sparki.getY());
-						System.out.println("X: " + x + " Y: " + y);
-            					System.out.println("YDiff: " + ydiff + " Theta: " + theta);
+				for(int y = 0; y < HEIGHT; y++)
+				{
+
+					double s = 1/(2*area)*(p0y*p2x - p0x*p2y + (p2y - p0y)*x + (p0x - p2x)*y);
+					double t = 1/(2*area)*(p0x*p1y - p0y*p1x + (p0y - p1y)*x + (p1x - p0x)*y);
+					
+					//System.out.println("S: " + s + " T:" + t + " Area: " + area);
+					if( s<0 || t<0 || (1-s-t) < 0)
+						continue;
+
+					double ydiff = y - sparki.getY();
+					double xdiff = x - sparki.getX();
+					double theta = Math.atan2(ydiff, xdiff) * 180 / Math.PI;
+					double distance = Math.sqrt(Math.pow(ydiff, 2) + Math.pow(xdiff, 2));
+				//	System.out.println("XCurr: " + sparki.getX() + " YCurr: " + sparki.getY());
+				//	System.out.println("X: " + x + " Y: " + y);
+				//	System.out.println("YDiff: " + ydiff + " Theta: " + theta);
+					
+					if(theta <= 2) 
+						mw.newEvidence(y, x, 0.8);
+					else if(theta > 2 && theta <= 4) 
+						mw.newEvidence(y, x, 0.9);
+					else if (theta > 4 && theta <= 7) 
+						mw.newEvidence(y, x, 0.95);	
 						
-						if(ydiff <= 40 && ydiff > 0)
-            					{
-            						if(theta <= 2) 
-            							mw.newEvidence(y, x, 0.8);
-            						else if(theta > 2 && theta <= 4) 
-            							mw.newEvidence(y, x, 0.9);
-            						else if (theta > 4 && theta <= 7) 
-            							mw.newEvidence(y, x, 0.95);	
-            						
-            						if(distance < 10)
-            							mw.newEvidence(y, x, 0.7);	
-            						else if(distance > 10 && distance <= 20)
-            							mw.newEvidence(y, x, 0.8);
-            						else if(distance > 20 && distance <= 30)
-            							mw.newEvidence(y, x, 0.85);
-            						else
-            							mw.newEvidence(y, x, 0.9);
-            					}
-						//sparki.delay(1000);
-            				}
-				mw.reColor();
-            		}
-			sparki.delay(20000);
-        	    }
+					if(distance < 10)
+						mw.newEvidence(y, x, 0.7);	
+					else if(distance <= 20)
+						mw.newEvidence(y, x, 0.8);
+					else if(distance <= 30)
+						mw.newEvidence(y, x, 0.85);
+					else if(distance <= MAX_DISTANCE)
+						mw.newEvidence(y, x, 0.9);
+					
+					//sparki.delay(1000);
+				}
+			}
+			mw.reColor();
+			sparki.delay(1000);
             	}
-            		
-            		
-//          	      getPrintTravel(sparki);
-//             	   System.out.println(sparki.ping());
-//             	   sparki.moveForward();
-//             	   sparki.delay(2000);
-//             	   getPrintTravel(sparki);
-//             	   System.out.println(sparki.ping());
-//             	   sparki.moveStop();
-//             	   sparki.delay(2000);
-    	}
+    	    }
+	}
 }	 
