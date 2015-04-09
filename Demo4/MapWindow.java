@@ -63,7 +63,7 @@ public class MapWindow extends JFrame {
 	for(int r = 0; r < imheight; r++)
 		for(int c = 0; c < imwidth; c++)
 		{
-			double probs = evidenceGrid[r][c] / (1 + evidenceGrid[r][c]);
+			double probs = 1 - (evidenceGrid[r][c] / (1 + evidenceGrid[r][c]));
 			int obstacleness = (int)(255 * probs);
 			setPixel(c, r, obstacleness);
 		}
