@@ -136,7 +136,6 @@ public class Sparki {
             
             // Check response
             String input = readString();
-            //System.out.println("ping " + input);
             return Integer.valueOf(input);
         } catch (SerialPortException e) {
             e.printStackTrace();
@@ -256,10 +255,11 @@ public class Sparki {
             	while(true) 
 		{
             		int ping = sparki.ping();
-            		System.out.println(ping);
 			
+			// 15 checks for good measure
 			for(int checks = 0; checks < 15; checks++)
 			{
+				// Cone from +7 to -7 of the current Sparki angle
 				double maxAngle = sparki.getCurTheta() + 7;
 				double minAngle = sparki.getCurTheta() - 7;
 				for(int x = 0; x < WIDTH; x++)
@@ -271,12 +271,15 @@ public class Sparki {
 						double theta = Math.atan2(ydiff, xdiff) * 180 / Math.PI;
 						double distance = Math.sqrt(Math.pow(ydiff, 2) + Math.pow(xdiff, 2));
 						
+						// Flip to positive angle
 						if(theta < 0)
 							theta += 360;
 
+						// Skip all pixels not within the sensor cone and more than 40cm. away
 						if(theta > maxAngle || theta < minAngle || distance > MAX_DISTANCE)
 							continue;
-
+						
+						//Before the obstacle or no obstacle whitening
 						if(distance < ping)
 						{
 							double maxDiff = maxAngle - theta;
@@ -297,7 +300,7 @@ public class Sparki {
 							else if(distance <= MAX_DISTANCE)
 								mw.newEvidence(y, x, 0.9);
 						}
-						else
+						else //Darkening obstacle
 						{
 							double obst = distance - ping;
 							if(obst <= 2)
@@ -313,15 +316,19 @@ public class Sparki {
 			}
 			
 			sparki.moveForward();
-			
+		
+			// update Sparki's X,Y position
 			double distance = Math.abs(sparki.totalTravel()[0] - sparki.getSteps()) / (4000/(5.0*Math.PI));
 			
 			sparki.setX(sparki.getX() + (Math.cos(sparki.getCurTheta() * (Math.PI/180.0)) * distance));
 			sparki.setY(sparki.getY() + (Math.sin(sparki.getCurTheta() * (Math.PI/180.0)) * distance));
 			sparki.setSteps(sparki.totalTravel()[0]);
 
+			// If obstacle is seen
 			if(ping < 25)
 			{
+				// Turn 90 degrees, so inaccurate that turning 57 degrees is turning Sparki 90
+				// Bluetooth or me not sure
 				double turned = 0;
 				double degreesToTurn = 57;
 				sparki.moveLeft();
@@ -335,11 +342,11 @@ public class Sparki {
 				sparki.moveStop();
 				sparki.setCurTheta(sparki.getCurTheta() + 90);
 				
-				if(sparki.getCurTheta() >360)
+				// Update current angle and make sure its between 0-359
+				if(sparki.getCurTheta() >= 360)
 					sparki.setCurTheta( sparki.getCurTheta() - 360);
 
 				sparki.setSteps(sparki.totalTravel()[0]);
-				System.out.println(sparki.getCurTheta());
 			}
 		}
     	    }
