@@ -21,7 +21,7 @@
 #define REQ_LINESENS 9
 #define MOVE_FORWARD_DIST 10
 #define REQ_POS 11
-#define MOVE_BACKWORD_DIST 12
+#define MOVE_BACKWARD_DIST 12
 #define MOVE_RIGHT_DEG 13
 #define MOVE_LEFT_DEG 14
 
@@ -32,7 +32,7 @@ void setup()
   Serial1.begin(9600);
   sparki.servo(SERVO_CENTER);
   sparki.clearLCD();
-  sparki.println("Starting..");
+  sparki.println("Starting...");
   sparki.updateLCD();
 }
 
@@ -140,7 +140,7 @@ void loop()
           for (int i=3; i>=0; i--) {
             degbytes[i] = Serial1.read();
           }
-          deg = unpackFloat(distbytes);
+          deg = unpackFloat(degbytes);
           sparki.println(deg);
           sparki.updateLCD();
           sparki.moveLeft(deg);
@@ -160,7 +160,7 @@ void loop()
           for (int i=3; i>=0; i--) {
             degbytes[i] = Serial1.read();
           }
-          deg = unpackFloat(distbytes);
+          deg = unpackFloat(degbytes);
           sparki.println(deg);
           sparki.updateLCD();
           sparki.moveRight(deg);
