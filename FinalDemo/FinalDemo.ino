@@ -250,8 +250,6 @@ void localize()
   }
   while(sparki.lineCenter() > lThreshold || sparki.lineLeft() > lThreshold || sparki.lineRight() > lThreshold);
   sparki.moveStop();
-  p.update();
-  
   p.setCenter((point){locs[positionIndex][0], locs[positionIndex][1]});
   p.setAngle(PI/2);
   
@@ -271,6 +269,9 @@ void localize()
   sparki.print("A: ");
   sparki.println(p.getAngle());
   sparki.updateLCD();
+  
+  sparki.moveForward(8);
+  p.update();
 }
 
 float findDist(float toX, float toY, float currentX, float currentY)
