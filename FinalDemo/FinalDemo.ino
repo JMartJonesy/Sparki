@@ -5,7 +5,7 @@ int ping = 0;
 int positionIndex = 0;
 boolean obstacle = false;
 double pingMax = 8;
-double locs[3][2] = {{20, 0}, {0, 0}};
+double locs[4][2] = {{20, 0}, {20, 40}, {20, 20}, {0, 0}};
 PositionTracker p = PositionTracker();
 float sensorLX = 0.0;
 float sensorLY = 0.0;
@@ -21,7 +21,7 @@ float radius = 7.65;
 void setup()
 {
   sparki.servo(SERVO_CENTER);
-  sparki.speed(60);
+  sparki.speed(45);
   sparki.clearLCD();
 }
 
@@ -39,15 +39,19 @@ void loop()
   if(positionIndex < sizeof(locs) / sizeof(locs[0]))
   {
      p.update();
-     sparki.println(p.getCenter().x);
+     /*parki.println(p.getCenter().x);
      sparki.println(p.getCenter().y);
      sparki.println(p.getAngle());
      sparki.updateLCD();
-     delay(10000);
+     sparki.println(locs[positionIndex][0]);
+     sparki.println(locs[positionIndex][1]);
+     sparki.updateLCD();
+     delay(10000);*/
      obstacle = false;
-     double turnDegrees = getToDegrees(locs[positionIndex][0],  p.getCenter().x, locs[positionIndex][1], p.getCenter().y);
+     double turnDegrees = getToDegrees(locs[positionIndex][0], locs[positionIndex][1], p.getCenter().x, p.getCenter().y);
      sparki.moveLeft(turnDegrees);
-     sparki.moveStop();
+     if(positionIndex != 0)
+       sparki.moveForward(12);
      p.update();
      sparki.moveForward();
      boolean left = false;
@@ -71,6 +75,7 @@ void loop()
           sparki.moveStop();
           setLSensorXY(p.getCenter().x, p.getCenter().y, p.getAngle());
           sparki.moveForward();
+          sparki.beep();
         }
         else if(pingRight < rThreshold && !right)
         {
@@ -79,10 +84,15 @@ void loop()
           sparki.moveStop();
           setRSensorXY(p.getCenter().x, p.getCenter().y, p.getAngle());
           sparki.moveForward();
+          sparki.beep();
         }
         if(left && right)
+        {
           localize();
+          break;
+        }
      }
+     p.update();
      
      sparki.moveStop();
      if(obstacle)
@@ -252,26 +262,6 @@ void localize()
   sparki.moveStop();
   p.setCenter((point){locs[positionIndex][0], locs[positionIndex][1]});
   p.setAngle(PI/2);
-  
-  sparki.print("X: ");
-  sparki.println(p.getCenter().x);
-  sparki.print("Y: ");
-  sparki.println(p.getCenter().y);
-  sparki.print("A: ");
-  sparki.println(p.getAngle());
-  sparki.updateLCD();
-  p.update();
-  
-  sparki.print("X: ");
-  sparki.println(p.getCenter().x);
-  sparki.print("Y: ");
-  sparki.println(p.getCenter().y);
-  sparki.print("A: ");
-  sparki.println(p.getAngle());
-  sparki.updateLCD();
-  
-  sparki.moveForward(8);
-  p.update();
 }
 
 float findDist(float toX, float toY, float currentX, float currentY)
@@ -281,6 +271,13 @@ float findDist(float toX, float toY, float currentX, float currentY)
 
 float getToDegrees(float toX, float toY, float currentX, float currentY)
 {
+  sparki.clearLCD();
+  sparki.println("ANGLE");
+  sparki.println(toX);
+  sparki.println(toY);
+  sparki.println(currentX);
+  sparki.println(currentY);
+  sparki.updateLCD();
   float phi = atan2(toY - currentY, toX - currentX);
   return ((atan2(sin(phi - p .getAngle()), cos(phi - p.getAngle()))) * 180 / PI); 
 }
