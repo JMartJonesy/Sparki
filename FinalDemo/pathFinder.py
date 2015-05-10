@@ -9,9 +9,9 @@ from collections import deque
 from struct import pack, unpack
 
 graph = []
-landMarks = [[20, 0], [40,20], [20, 20]]
+landMarks = [[20, 0], [400,150], [200, 200]]
 
-portName = "/dev/cu.ArcBotics-DevB"
+portName = "/dev/cu.ArcBotics-DevB-1"
 serialPort = Serial()
 
 def connect():
@@ -31,36 +31,35 @@ def connect():
 def disconnect():
 	print("Disconnecting...")
 	serialPort.close()
-	if(serialPort.isClose()):
-		print("Disconnected")
+	#if(serialPort.isClosed()):
+	#	print("Disconnected")
 
 def sendPath(path):
-	for i in path:
-		serialPort.write('!B', '!')
-		sendLoc(landMarks[i][0], landMarks[i][1])
-		if(not readOK()):
-			print("Shits Fucked")
-			break
+	serialPort.write(pack('i', len(path)))
+	print("Sending: ", len(path))
+	while(not readOK()):
+		pass
+	for goal in path:
+		sendLoc(goal[0], goal[1])
+		while(not readOK()):
+			pass
+	#serialPort.write(pack('c', '*'))
 	print("Path Sent")
-	serialPort.write('!B', '*')
 
 def sendLoc(x, y):
 	print("Sending x:", x)
 	serialPort.write(pack('f', x))
-	readOK()
 	print("Sending y:", y)
 	serialPort.write(pack('f', y))
-	readOK()
 
 def readOK():
-	if(str(serialPort.read(size = 1)) == "K"):
+	if(unpack('?',serialPort.read(size = 1))[0]):
 		print("It's A OK")
 		return True
 	return False
 
 #def findCircleCenters():
 	
-
 def buildGraph():
 	for i in range(len(landMarks)):
 		neighbors = []
@@ -82,33 +81,37 @@ def getClosestLandmark(x, y):
 def findPath(startLandmark, endX, endY):
 	lastLandmark = getClosestLandmark(endX, endY)
 	print("Finish:", lastLandmark)
+	if startLandmark == lastLandmark:
+		return [landMarks[startLandmark], [endX. endY]]
 	Q = deque([startLandmark])
 	parents = dict()
 	parents[startLandmark] = None
 
-	while len(Q) != 0 and Q[0] != lastLandmark:
+	while len(Q) != 0:
 		parent = Q.popleft()
 		for neighbor in graph[parent]:
 			if neighbor == lastLandmark:
 				parents[neighbor] = parent
-				return createPath(parents, lastLandmark)
+				return createPath(parents, lastLandmark, [endX, endY])
 			if neighbor not in parents:
 				parents[neighbor] = parent
 				Q.append(neighbor)
 
+	#add if path doesnt exist
 	return createPath(parents, lastLandmark)
 
-def createPath(parents, lastLandmark):
+def createPath(parents, lastLandmark, goal):
 	path = deque()
-	if parents[lastLandmark] != None:
-		path.append(lastLandmark)
-		parent = parents[lastLandmark]
-		while parent != None:
-			path.appendleft(parent)
-			parent = parents[parent]
+	path.append(landMarks[lastLandmark])
+	path.append(goal)
+	parent = parents[lastLandmark]
+	while parent != None:
+		path.appendleft(landMarks[parent])
+		parent = parents[parent]
 	return path
 
 if __name__ == "__main__":
+	connect()
 	buildGraph()
 	print("Graph:", graph)
 	print("LandMarks:", landMarks)
@@ -116,12 +119,6 @@ if __name__ == "__main__":
 	print("Start:", startLandmark)
 	path = findPath(startLandmark, float(input("Input X:")), float(input("Input Y:")))
 	print(path)
-	#connect()
-	#while(True):
-	#	pass
-	phi = atan2(0 - 0, 20 - 0);
-	print((atan2(sin(phi - 0), cos(phi - 0))) * 180 / pi)
-	phi = atan2(200 - 0, 400 - 20);
-	print((atan2(sin(phi - pi / 2), cos(phi - pi / 2))) * 180 / pi)
-	phi = atan2(20 - 200, 200 - 400);
-	print((atan2(sin(phi - pi / 2), cos(phi - pi / 2))) * 180 / pi)
+	sendPath(path)
+	input()
+	disconnect()
