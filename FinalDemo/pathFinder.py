@@ -9,7 +9,7 @@ from collections import deque
 from struct import pack, unpack
 
 graph = []
-landMarks = [[20, 0], [400,150], [200, 200]]
+landMarks = [[70, 0], [400,150], [200, 200]]
 
 portName = "/dev/cu.ArcBotics-DevB-1"
 serialPort = Serial()
@@ -43,7 +43,6 @@ def sendPath(path):
 		sendLoc(goal[0], goal[1])
 		while(not readOK()):
 			pass
-	#serialPort.write(pack('c', '*'))
 	print("Path Sent")
 
 def sendLoc(x, y):
@@ -78,11 +77,17 @@ def getClosestLandmark(x, y):
 			minLandmark = i
 	return minLandmark
 
-def findPath(startLandmark, endX, endY):
+def findPath(startX, startY, endX, endY):
+	startLandmark = getClosestLandmark(startX, startY)
 	lastLandmark = getClosestLandmark(endX, endY)
-	print("Finish:", lastLandmark)
-	if startLandmark == lastLandmark:
-		return [landMarks[startLandmark], [endX. endY]]
+	start = [startX, startY]
+	destination = [endX, endY]
+	if start == destination:
+		return [start]
+	elif start == landMarks[startLandmark] == landMarks[lastLandmark] or landMarks[startLandmark] == landMarks[lastLandmark] == destination:
+		return reversePath([start, destination])
+	elif startLandmark == lastLandmark:
+		return reversePath([start, landMarks[startLandmark], destination])
 	Q = deque([startLandmark])
 	parents = dict()
 	parents[startLandmark] = None
@@ -92,7 +97,7 @@ def findPath(startLandmark, endX, endY):
 		for neighbor in graph[parent]:
 			if neighbor == lastLandmark:
 				parents[neighbor] = parent
-				return createPath(parents, lastLandmark, [endX, endY])
+				return createPath(parents, lastLandmark, start, destination)
 			if neighbor not in parents:
 				parents[neighbor] = parent
 				Q.append(neighbor)
@@ -100,25 +105,32 @@ def findPath(startLandmark, endX, endY):
 	#add if path doesnt exist
 	return createPath(parents, lastLandmark)
 
-def createPath(parents, lastLandmark, goal):
+def createPath(parents, lastLandmark, start, goal):
 	path = deque()
 	path.append(landMarks[lastLandmark])
-	path.append(goal)
+	if landMarks[lastLandmark] != goal:
+		path.append(goal)
 	parent = parents[lastLandmark]
 	while parent != None:
 		path.appendleft(landMarks[parent])
 		parent = parents[parent]
+	path.appendleft(start)
+	return reversePath(path)
+
+def reversePath(path):
+	reversePath = list(path)
+	reversePath.reverse()
+	for goal in reversePath[1:]:
+		path.append(goal)
 	return path
 
 if __name__ == "__main__":
-	connect()
+	#connect()
 	buildGraph()
 	print("Graph:", graph)
 	print("LandMarks:", landMarks)
-	startLandmark = getClosestLandmark(0, 0) #move to this landmark then start path
-	print("Start:", startLandmark)
-	path = findPath(startLandmark, float(input("Input X:")), float(input("Input Y:")))
+	path = findPath(float(input("Start X:")), float(input("Start Y:")), float(input("Destination X:")), float(input("Destination Y:")))
 	print(path)
-	sendPath(path)
+	#sendPath(path)
 	input()
-	disconnect()
+	#disconnect()
