@@ -8,7 +8,8 @@ from serial import Serial
 from collections import deque
 from struct import pack, unpack
 
-graph = [[1, 4], [0, 4], [3],[2], [0, 1]]
+graph = []
+#graph = [[1, 4], [0, 4], [3],[2], [0, 1]]
 landMarks = [[64.45, -76.26], [21.33, -166.46], [77.77, -62.78], [107.35, -158.22], [70,0]]
 
 portName = "/dev/cu.ArcBotics-DevB-1"
@@ -64,21 +65,26 @@ def readOK():
 
 def buildGraph():
 	for i in range(len(landMarks)):
-		neighbors = []
+		neighbor = []
 		for j in range(len(landMarks)):
-			if(i != j):
-				neighbors.append(j)
-		graph.append(neighbors)
+			if i == j:
+				continue
+			if getDist(landMarks[i][0], landMarks[j][0], landMarks[i][1], landMarks[j][1]) <= 100:
+				neighbor.append(j)
+		graph.append(neighbor)
 
 def getClosestLandmark(x, y):
 	minDist = float("inf")
 	minLandmark = 0
 	for i in range(len(landMarks)):
-		dist = sqrt(pow(y - landMarks[i][1], 2) + pow(x - landMarks[i][0], 2))
+		dist = getDist(landMarks[i][0], x, landMarks[i][1], y)
 		if(dist < minDist):
 			minDist = dist
 			minLandmark = i
 	return minLandmark
+
+def getDist(x1, y1, x2 ,y2):
+	return sqrt(pow(y2 - y1, 2) + pow(x2 - x1, 2))
 
 def findPath(startX, startY, endX, endY):
 	startLandmark = getClosestLandmark(startX, startY)
@@ -130,7 +136,7 @@ def reversePath(path):
 	return path
 
 if __name__ == "__main__":
-	connect()
+	#connect()
 	buildGraph()
 	print("Graph:", graph)
 	print("LandMarks:", landMarks)
@@ -142,6 +148,6 @@ if __name__ == "__main__":
 		path = findPath(startX, startY, endX, endY)
 		path.append([startX, startY])
 		print(path)
-		sendPath(path, [endX, endY])
+		#sendPath(path, [endX, endY])
 	input()
-	disconnect()
+	#disconnect()
