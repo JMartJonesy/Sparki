@@ -20,25 +20,30 @@ char readByties[4];
 double goal[2] = {0, 0};
 double prevGoal[2] = {0,0};
 boolean firstGoal = true;
+boolean notGoal = true;
 boolean wallFollowed = false;
+boolean objectGrabbed = false;
 
 void setup()
 {
   sparki.servo(SERVO_CENTER);
   sparki.clearLCD();
+  sparki.gripperOpen();
+  delay(5000);
+  sparki.gripperStop();
   Serial1.begin(9600);
   while(Serial1.available() < 4);
   Serial1.readBytes(readByties, 4);
   positionIndex = *(int *)&readByties;
-  sparki.println(positionIndex);
-  sparki.updateLCD();
   sendOK();
+  firstGoal = true;
+  notGoal = true;
+  wallFollowed = false;
+  objectGrabbed = false;
 }
 
 void loop()
 {
-    sparki.println(positionIndex);
-    sparki.updateLCD();
     if(positionIndex > 0)
     {
       if(!wallFollowed)
@@ -51,12 +56,14 @@ void loop()
         while(Serial1.available() < 4);
         Serial1.readBytes(readByties, 4);
         goal[1] = *(float *)&readByties;
-        sparki.print(goal[0]);
-        sparki.print(", ");
-        sparki.println(goal[1]);
-        sparki.updateLCD();
-        p.update();
+        while(Serial1.available() < 4);
+        Serial1.readBytes(readByties, 4);
+        if(*(float *)&readByties)
+        {
+          notGoal = false;
+        }
       }
+      p.update();
       obstacle = false;
       double turnDegrees = getToDegrees(goal[0], goal[1], p.getCenter().x, p.getCenter().y);
       sparki.moveLeft(turnDegrees);
@@ -77,9 +84,15 @@ void loop()
       {
         p.update();
         ping = sparki.ping();
-        if(ping <= pingMax)
-        obstacle = true;
-        
+        double dist = findDist(goal[0], goal[1], p.getCenter().x, p.getCenter().y);
+        if(!objectGrabbed)
+        {
+          if(ping <= pingMax && !notGoal && dist > (pingMax + 10))
+            obstacle = true;   
+          else if(ping <= pingMax && notGoal)
+            obstacle = true;
+        }
+          
         int pingLeft = sparki.edgeLeft();
         int pingRight = sparki.edgeRight();
         p.update();
@@ -117,17 +130,35 @@ void loop()
      }
      else
      {
+       if(!notGoal && !objectGrabbed)
+       {
+         sparki.gripperClose();
+         delay(5000);
+         sparki.gripperStop();
+         sparki.moveForward(10);
+         sparki.moveBackward(10);
+         p.update();
+         objectGrabbed = true;
+       }
        firstGoal = false;
        wallFollowed = false;
        positionIndex--;
+       delay(10000);
        sendOK();
      }
    }
    else
    {
-      sparki.println("CLOSING GRIPPERS");
-      sparki.updateLCD();
-      sparki.gripperClose();  
+     sparki.moveForward(10);
+     sparki.moveBackward(10);
+     p.update();
+     sparki.gripperOpen();
+     delay(5000);
+     sparki.gripperStop();
+     sparki.moveRight(180);
+     p.update();
+     delay(5000);
+     setup();
    }
 }
 
@@ -139,29 +170,13 @@ void sendOK()
 
 boolean atGoal()
 {
-    if(fabs(goal[0] - p.getCenter().x) <= 1 && fabs(goal[1] - p.getCenter().y) <= 1)
+    if(findDist(goal[0], goal[1], p.getCenter().x, p.getCenter().y) <= .5)
       return true;
     return false;
 }
 
 void wallFollow()
-{
-  
-    double a;
-    double b = 1;
-    double c;
-    if(goal[0] == prevGoal[0])
-    { // If previous goal and current goal X values are the same, to avoid division by 0
-      a = 1;
-      b = 0;
-      c = -goal[0];
-    } 
-    else 
-    {
-      a = -(goal[1] - prevGoal[1]) / (goal[0] - prevGoal[0]);
-      c = (((goal[1] - prevGoal[1]) / (goal[0] - prevGoal[0])) * goal[0]) - prevGoal[1];
-    }
-    
+{    
     while(true)
     {
       if(obstacle)
@@ -184,30 +199,22 @@ void wallFollow()
         turnMe(ping, false);
       else if(ping < pingMax)
         turnMe(ping, true);
-      double d = mLineDistance(a,b,c);
-      sparki.print("Distance: ");
-      sparki.println(d);
-      sparki.updateLCD();
       
+      double d = mLineDistance();
       sparki.servo(SERVO_CENTER);
-      delay(400);
-      
+      delay(500);
       ping = sparki.ping();
-      if(ping < pingMax)
-        obstacle = true;
-        
+      
       if(d <= 3) 
       {
         sparki.servo(SERVO_CENTER);
         break;
       }
     }
-
 }
 
 void turnMe(int obstacleDistance, boolean left)
 {
-   sparki.println(obstacleDistance);
    double degreesToTurn;
    obstacleDistance = fabs(obstacleDistance - pingMax);
    if(obstacleDistance > 70)
@@ -228,9 +235,15 @@ void turnMe(int obstacleDistance, boolean left)
    p.update();
 }
 
-double mLineDistance(double a, double b, double c)
+//double mLineDistance(double a, double b, double c)
+double mLineDistance()
 {
-   return fabs((a * p.getCenter().x) + (b * p.getCenter().y) + c) / sqrt((a * a) + (b * b));
+   float top = fabs(((goal[1] - prevGoal[1])*p.getCenter().x) - 
+               ((goal[0] - prevGoal[0])*p.getCenter().y) + (goal[0]*prevGoal[1]) - (goal[1]*prevGoal[0]));
+   float bot = sqrt(((goal[1] - prevGoal[1]) * (goal[1] - prevGoal[1])) + 
+                   ((goal[0] - prevGoal[0]) * (goal[0] - prevGoal[0])));
+   return top/bot;
+   //return fabs((a * p.getCenter().x) + (b * p.getCenter().y) + c) / sqrt((a * a) + (b * b));
 }
 
 void localize()
