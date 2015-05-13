@@ -8,13 +8,14 @@ from serial import Serial
 from collections import deque
 from struct import pack, unpack
 
-graph = []
-#graph = [[1, 4], [0, 4], [3],[2], [0, 1]]
-landMarks = [[64.45, -76.26], [21.33, -166.46], [77.77, -62.78], [107.35, -158.22], [70,0]]
+#graph = []
+graph = [[1], [0]]
+landMarks = [[77.77, -62.78], [107.35, -158.22]]
 
 portName = "/dev/cu.ArcBotics-DevB-1"
 serialPort = Serial()
 
+#Connects to Sparki
 def connect():
 	print("Trying to Connect")
 	serialPort.port = portName
@@ -29,12 +30,14 @@ def connect():
 	
 	return False
 
+#Disconnects from Sparki
 def disconnect():
 	print("Disconnecting...")
 	serialPort.close()
 	#if(serialPort.isClosed()):
 	#	print("Disconnected")
 
+#Sends entire path to Sparki, first the length then each locations (x,y)
 def sendPath(path, itemLoc):
 	serialPort.write(pack('i', len(path)))
 	print("Sending: ", len(path))
@@ -51,18 +54,21 @@ def sendPath(path, itemLoc):
 
 	print("Path Sent")
 
+#Sends (x,y) location to Sparki
 def sendLoc(x, y):
 	print("Sending x:", x)
 	serialPort.write(pack('f', x))
 	print("Sending y:", y)
 	serialPort.write(pack('f', y))
 
+#Reads a 1 from Sparki saying its ok to send next location
 def readOK():
 	if(unpack('?',serialPort.read(size = 1))[0]):
 		print("It's A OK")
 		return True
 	return False
 
+#Builds a graph linking nodes that are at most 1 meter apart
 def buildGraph():
 	for i in range(len(landMarks)):
 		neighbor = []
@@ -73,6 +79,7 @@ def buildGraph():
 				neighbor.append(j)
 		graph.append(neighbor)
 
+#Get closest landmark to given (x,y) coordinates
 def getClosestLandmark(x, y):
 	minDist = float("inf")
 	minLandmark = 0
@@ -83,9 +90,11 @@ def getClosestLandmark(x, y):
 			minLandmark = i
 	return minLandmark
 
+#Gets distance between two points
 def getDist(x1, y1, x2 ,y2):
 	return sqrt(pow(y2 - y1, 2) + pow(x2 - x1, 2))
 
+#Creates path from the starting position to the ending position using BFS
 def findPath(startX, startY, endX, endY):
 	startLandmark = getClosestLandmark(startX, startY)
 	lastLandmark = getClosestLandmark(endX, endY)
@@ -114,6 +123,7 @@ def findPath(startX, startY, endX, endY):
 	#add if path doesnt exist
 	return createPath(parents, lastLandmark)
 
+#Creates path to goal after running a BFS
 def createPath(parents, lastLandmark, start, goal):
 	path = deque()
 	path.append(landMarks[lastLandmark])
@@ -126,6 +136,7 @@ def createPath(parents, lastLandmark, start, goal):
 	path.appendleft(start)
 	return reversePath(path)
 
+#Takes a path and append the reverse path back to the starting position
 def reversePath(path):
 	path = list(path)
 	path = path[1:]
@@ -136,8 +147,8 @@ def reversePath(path):
 	return path
 
 if __name__ == "__main__":
-	#connect()
-	buildGraph()
+	connect()
+	#buildGraph()
 	print("Graph:", graph)
 	print("LandMarks:", landMarks)
 	while(input("Y or N:") != "N"):
@@ -148,6 +159,6 @@ if __name__ == "__main__":
 		path = findPath(startX, startY, endX, endY)
 		path.append([startX, startY])
 		print(path)
-		#sendPath(path, [endX, endY])
+		sendPath(path, [endX, endY])
 	input()
-	#disconnect()
+	disconnect()

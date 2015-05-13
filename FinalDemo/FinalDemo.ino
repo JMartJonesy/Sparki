@@ -42,6 +42,8 @@ void setup()
   objectGrabbed = false;
 }
 
+//Recieves the location to move to and starts moving there obstacle avoiding and localize if necessary
+//Picking up the object if the goal location is reached
 void loop()
 {
     if(positionIndex > 0)
@@ -70,11 +72,11 @@ void loop()
       p.update();
       sparki.clearLCD();
       sparki.moveStop();
-      if(!firstGoal)
-      {
+      //if(!firstGoal)
+      //{
         sparki.moveForward(4);
         p.update();
-      }
+      //}
       sparki.moveForward();
       boolean left = false;
       boolean right = false;
@@ -150,24 +152,26 @@ void loop()
    else
    {
      sparki.moveForward(10);
-     sparki.moveBackward(10);
-     p.update();
      sparki.gripperOpen();
      delay(5000);
      sparki.gripperStop();
-     sparki.moveRight(180);
+     sparki.moveBackward(10);
+     p.update();
+     sparki.moveRight(90);
      p.update();
      delay(5000);
      setup();
    }
 }
 
+//Sends a 1 to the python script to request the next location to move to
 void sendOK()
 {
   Serial1.write(1);
   Serial1.flush(); 
 }
 
+//Checks to see if you are at the goal
 boolean atGoal()
 {
     if(findDist(goal[0], goal[1], p.getCenter().x, p.getCenter().y) <= .5)
@@ -175,6 +179,7 @@ boolean atGoal()
     return false;
 }
 
+//Wall follows an obsatcle until reaching the m-line on the other side
 void wallFollow()
 {    
     while(true)
@@ -205,7 +210,7 @@ void wallFollow()
       delay(500);
       ping = sparki.ping();
       
-      if(d <= 3) 
+      if(d <= 2) 
       {
         sparki.servo(SERVO_CENTER);
         break;
@@ -213,6 +218,7 @@ void wallFollow()
     }
 }
 
+//Calculates how much to turn when wall following
 void turnMe(int obstacleDistance, boolean left)
 {
    double degreesToTurn;
@@ -235,7 +241,7 @@ void turnMe(int obstacleDistance, boolean left)
    p.update();
 }
 
-//double mLineDistance(double a, double b, double c)
+//Find the distance from Sparki to the m-line
 double mLineDistance()
 {
    float top = fabs(((goal[1] - prevGoal[1])*p.getCenter().x) - 
@@ -243,9 +249,9 @@ double mLineDistance()
    float bot = sqrt(((goal[1] - prevGoal[1]) * (goal[1] - prevGoal[1])) + 
                    ((goal[0] - prevGoal[0]) * (goal[0] - prevGoal[0])));
    return top/bot;
-   //return fabs((a * p.getCenter().x) + (b * p.getCenter().y) + c) / sqrt((a * a) + (b * b));
 }
 
+//Localize on a landmark and update Sparkis current angle and location
 void localize()
 {
   int lThreshold = 600;
@@ -284,17 +290,20 @@ void localize()
   p.setAngle(PI/2);
 }
 
+//Returns the distance between two points
 float findDist(float toX, float toY, float currentX, float currentY)
 {
   return sqrt(((toX-currentX)*(toX-currentX)) + ((toY-currentY)*(toY-currentY)));
 }
 
+//Find the angle necessary for sparki to look directly at the next goal/landmark
 float getToDegrees(float toX, float toY, float currentX, float currentY)
 {
   float phi = atan2(toY - currentY, toX - currentX);
   return ((atan2(sin(phi - p .getAngle()), cos(phi - p.getAngle()))) * 180 / PI); 
 }
 
+//Finds the two centers of the circles given two points on the circle
 void findCenter(float x1, float y1, float x2, float y2)
 {
   float q = sqrt(((x2-x1)*(x2-x1)) + ((y2-y1)*(y2-y1)));
@@ -306,12 +315,14 @@ void findCenter(float x1, float y1, float x2, float y2)
   c2y = y3 - sqrt((radius*radius) - ((q/2)*(q/2))) * ((x2-x1)/q);
 }
 
+//Sets the left edge sensors (x,y) position after seeing a landmark
 void setLSensorXY(float x, float y, float angle)
 {
   sensorLX = x + cos(angle + .749269314) * 5.872818744;
   sensorLY = y + sin(angle + .749269314) * 5.872818744;
 }
 
+//Sets the right edge sensors (x,y) position after seeing a landmark
 void setRSensorXY(float x, float y, float angle)
 {
   sensorRX = x + cos(angle - .749269314) * 5.872818744;
