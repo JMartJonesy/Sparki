@@ -4,6 +4,7 @@
 import serial
 import struct
 import time
+from math import atan2,sin,cos
 
 class Sparki:
 
@@ -30,6 +31,7 @@ class Sparki:
 	portName = None
 	serialPort = None
 
+	EPS_XY = .05
 	curX = curY = curTheta = 0
 
 	def __init__(self, comPort):
@@ -177,3 +179,52 @@ class Sparki:
 	def delay(self, time):
 		# Should validate time is int in milliseconds
 		time.sleep(time/1000)
+
+	def go_to(x, y):
+		if (abs(sparki.curX - x) < EPS_XY and abs(sparki.curY - y) < EPS_XY ): # Check if at goal
+			moveStop()
+			return True
+		else: # Move toward goal
+			phi = atan2(y - sparki.curY, x - sparki.curX); # bearing of goal
+			delta_theta = atan2(sin(phi - sparki.curTheta),cos(phi - sparki.curTheta)) # signed difference between bearing and goal
+			if (abs(delta_theta) < EPS_T): # if facing goal -> move forward
+				moveForward()
+			elif (delta_theta > 0): # else turn toward goal
+				moveLeft()
+			else:
+				moveRight()
+		return False;
+
+	#def localizeBitch():
+	#	sensorsBaby = lineSense()
+	#	while(sense[0] == 1 and sense[)
+			
+
+
+	def readLandmark():
+		sense = sparki.lineSense()
+		if (sense[0] == 1 and sense[4] != 1): # turn left
+			while (sense[4] != 1):
+				turnLeft()
+				sense = lineSense()
+		elif (sense[0] != 1 and sense[4] == 1): # turn right
+			while (sense[0] != 1):
+				turnRight()
+				sense = lineSense()
+		# move towards center counting rings
+		count = 0
+		on_ring = False
+		pos = curX, curY
+		while (dist(curX, pos[0], curY, pos[1]) < .07): # haven't hit center of barcode
+			sense = lineSense()
+			if (sense[2] == 1 and on_ring == False):
+				count += 1
+				on_ring = True
+			elif (sense[2] == 0 and on_ring == True):
+				on_ring = False
+			moveForward()
+		# At center of barcode
+		while (sense[2] != 1):
+			moveLeft()
+			sense = lineSense()
+		return count
